@@ -1,35 +1,17 @@
-import javax.lang.model.element.Name;
 import java.math.BigDecimal;
 import java.sql.*;
 
+import static java.sql.DriverManager.getConnection;
 
-public class Bookshop {
 
-    private static final String URL = "jdbc:postgresql://localhost:5432/bookStore";
-    private static final String USER = "postgres";
-    private static final String PASSWORD = "1234";
+public class BookshopCRUD {
 
-    public static Connection connect() {
-        Connection conn = null;
-        try {
 
-            Class.forName("org.postgresql.Driver");
-            conn = DriverManager.getConnection(URL, USER, PASSWORD);
-//            System.out.println("Connected to the PostgreSQL server successfully.");
-        } catch (ClassNotFoundException e) {
-            System.out.println("PostgreSQL JDBC Driver not found.");
-            e.printStackTrace();
-        } catch (SQLException e) {
-            System.out.println("Connection to the PostgreSQL server failed.");
-            e.printStackTrace();
-        }
-        return conn;
-    }
 
     public static void insertBook(int authorId, String title, String isbn, BigDecimal price, int stock){
         String sql = "INSERT INTO Books (AuthorId, Title, ISBN, Price, Stock) VALUES (?, ?, ?, ?, ?)";
 
-        try(Connection conn = connect();
+        try(Connection conn = DatabaseConnectionManager.getConnection();
             PreparedStatement pstm = conn.prepareStatement(sql)) {
             pstm.setInt(1, authorId);
             pstm.setString(2, title);
@@ -52,7 +34,7 @@ public class Bookshop {
     public static void insertAuthors(String name, String bio){
         String sql = "INSERT INTO Authors (Name, Bio) VALUES(?, ?)";
 
-        try(Connection conn = connect();
+        try(Connection conn = DatabaseConnectionManager.getConnection();
             PreparedStatement pstm = conn.prepareStatement(sql)) {
 
             pstm.setString(1, name);
@@ -73,7 +55,7 @@ public class Bookshop {
                "LEFT JOIN OrderDetails od ON b.BookID = od.BookID " +
                "LEFT JOIN Orders o ON od.OrderID = o.OrderID";
 
-       try (Connection conn = connect();
+       try (Connection conn = DatabaseConnectionManager.getConnection();
             Statement stm = conn.createStatement();
             ResultSet rs = stm.executeQuery(sql)) {
 
@@ -108,7 +90,7 @@ public class Bookshop {
 
         String sql = "UPDATE Books SET AuthorId = ? ,Title = ?, ISBN=?, Price=?, Stock=? WHERE BookID= ?";
 
-        try(Connection conn = connect();
+        try(Connection conn = DatabaseConnectionManager.getConnection();
              PreparedStatement pstm = conn.prepareStatement(sql)) {
 
             pstm.setInt(1,newAuthorID);
@@ -131,19 +113,36 @@ public class Bookshop {
         }
 
 
+
+
+
    }
 
 
 
+public static void removeBook(int bookId){
+        String sql = "DELETE FROM Books WHERE BookID=?";
 
+        try(Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement pstm = conn.prepareStatement(sql)) {
 
+            pstm.setInt(1,bookId);
 
+            if(pstm.executeUpdate()>0){
+                System.out.println("Book removed successfully.");
+            } else {
+                System.out.println("No book was removed. Please check the Book ID.");
+            }
 
+        }catch (SQLException e) {
+        System.out.println("Error while removing book: " + e.getMessage());
+        e.printStackTrace();
+    } catch (Exception e) {
+        System.out.println("An unexpected error occurred: " + e.getMessage());
 
+    }
 
-
-
-
+}
 
 
 
