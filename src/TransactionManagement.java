@@ -69,16 +69,16 @@ public class TransactionManagement {
               }
               return false;
           }
-
       }
+
     private static void updateBookStock(Connection conn, int bookId, int quantity) throws SQLException {
         String sql = "UPDATE Books SET Stock = Stock - ? WHERE BookID = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, quantity);
             pstmt.setInt(2, bookId);
-            if (pstmt.executeUpdate() == 0) {
-                throw new SQLException("Updating stock failed, no rows affected.");
-            }
+
+            executeUpdate(pstmt, "Updating stock failed, no rows affected.");
+
         }
     }
     private static int insertOrder(Connection conn, int customerId) throws SQLException {
@@ -107,13 +107,16 @@ public class TransactionManagement {
             pstmt.setInt(1, orderId);
             pstmt.setInt(2, bookId);
             pstmt.setInt(3, quantity);
-            int affectedRows = pstmt.executeUpdate();
-            if (affectedRows == 0) {
-                throw new SQLException("Inserting order details failed, no rows affected.");
-            }
+
+            executeUpdate(pstmt, "Inserting order details failed, no rows affected.");
+
         }
     }
-
+    private static void executeUpdate(PreparedStatement pstm, String errorMessage) throws SQLException {
+        if (pstm.executeUpdate() == 0) {
+            throw new SQLException(errorMessage);
+        }
+    }
 }
 
 

@@ -19,10 +19,8 @@ public class BookshopCRUD {
             pstm.setBigDecimal(4, price);
             pstm.setInt(5,stock);
 
-            int affectedRows = pstm.executeUpdate();
-            if(affectedRows > 0){
-                System.out.println("A new book has been inserted");
-            }
+            executeUpdate(pstm,"inserting the book");
+
         }catch (SQLException e){
             System.out.println("Error while inserting the book");
             e.printStackTrace();
@@ -39,9 +37,9 @@ public class BookshopCRUD {
 
             pstm.setString(1, name);
             pstm.setString(2,bio);
-       if(pstm.executeUpdate()>0){
-           System.out.println("A new author has been inserted");
-       }
+
+            executeUpdate(pstm, "inserting an Author");
+
         }catch (SQLException e){
             System.out.println("Error while inserting the Author");
             e.printStackTrace();
@@ -100,11 +98,7 @@ public class BookshopCRUD {
             pstm.setInt(5, newStock);
             pstm.setInt(6,bookId);
 
-             if(pstm.executeUpdate()>0){
-                 System.out.println("Book details updated successfully.");
-             } else {
-                 System.out.println("No book was updated. Please check the Book ID.");
-             }
+            executeUpdate(pstm, "updating the book");
 
 
         }catch (SQLException e){
@@ -113,12 +107,7 @@ public class BookshopCRUD {
         }
 
 
-
-
-
    }
-
-
 
 public static void removeBook(int bookId){
         String sql = "DELETE FROM Books WHERE BookID=?";
@@ -128,22 +117,20 @@ public static void removeBook(int bookId){
 
             pstm.setInt(1,bookId);
 
-            if(pstm.executeUpdate()>0){
-                System.out.println("Book removed successfully.");
-            } else {
-                System.out.println("No book was removed. Please check the Book ID.");
-            }
+           executeUpdate(pstm,"removing the book");
 
         }catch (SQLException e) {
         System.out.println("Error while removing book: " + e.getMessage());
         e.printStackTrace();
-    } catch (Exception e) {
-        System.out.println("An unexpected error occurred: " + e.getMessage());
-
     }
+ }
 
-}
-
-
-
+    private static void executeUpdate(PreparedStatement pstm, String action) throws SQLException {
+        int affectedRows = pstm.executeUpdate();
+        if (affectedRows > 0) {
+            System.out.println("Operation of " + action + " was successful.");
+        } else {
+            System.out.println("No rows were affected during " + action + ". Please check your inputs.");
+        }
+    }
 }
