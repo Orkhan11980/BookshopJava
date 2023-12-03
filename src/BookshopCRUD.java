@@ -22,8 +22,7 @@ public class BookshopCRUD {
             executeUpdate(pstm,"inserting the book");
 
         }catch (SQLException e){
-            System.out.println("Error while inserting the book");
-            e.printStackTrace();
+            logError("Error while inserting the book with ISBN: " + isbn, e);
         }
 
 
@@ -41,17 +40,18 @@ public class BookshopCRUD {
             executeUpdate(pstm, "inserting an Author");
 
         }catch (SQLException e){
-            System.out.println("Error while inserting the Author");
-            e.printStackTrace();
+            logError("Error while inserting the Author with name: " + name, e);
         }
 
     }
    public static void getAllBookDeatils() {
-       String sql = "SELECT b.*, a.Name AS AuthorName, od.OrderID, od.Quantity, o.Status " +
+       String sql = "SELECT b.*, a.Name AS AuthorName,SUM(od.Quantity) AS TotalQuantity, MAX(o.Status) AS LatestStatus " +
                "FROM Books b " +
                "JOIN Authors a oN b.AuthorID = a.AuthorID " +
                "LEFT JOIN OrderDetails od ON b.BookID = od.BookID " +
-               "LEFT JOIN Orders o ON od.OrderID = o.OrderID";
+               "LEFT JOIN Orders o ON od.OrderID = o.OrderID " +
+               "GROUP BY b.BookID, a.Name " +
+               "ORDER BY b.BookID asc" ;
 
        try (Connection conn = DatabaseConnectionManager.getConnection();
             Statement stm = conn.createStatement();
@@ -67,12 +67,11 @@ public class BookshopCRUD {
                BigDecimal price = rs.getBigDecimal("Price");
                int stock = rs.getInt("Stock");
                String authorName = rs.getString("AuthorName");
-               int orderId = rs.getInt("OrderID");
-               int quantity = rs.getInt("Quantity");
-               String status = rs.getString("Status");
+               int TotalQuantity = rs.getInt("TotalQuantity");
+               String LatestStatus = rs.getString("LatestStatus");
 
-               String output = String.format("Book ID: %d, Author ID: %d, Title: '%s', ISBN: '%s', Price: %s, Stock: %d, Author: '%s', Order ID: %d, Quantity: %d, Status: %s",
-                       bookId, authorId, title, isbn, price, stock, authorName, orderId, quantity, status);
+               String output = String.format("Book ID: %d, Author ID: %d, Title: '%s', ISBN: '%s', Price: %s, Stock: %d, Author: '%s',  TotalQuantity: %d, LatestStatus: %s",
+                       bookId, authorId, title, isbn, price, stock, authorName, TotalQuantity, LatestStatus);
                System.out.println(output);
            }
 
@@ -102,8 +101,7 @@ public class BookshopCRUD {
 
 
         }catch (SQLException e){
-            System.out.println("Error while updating book details");
-            e.printStackTrace();
+            logError("Error while updating book details for BookID: " + bookId, e);
         }
 
 
@@ -120,17 +118,31 @@ public static void removeBook(int bookId){
            executeUpdate(pstm,"removing the book");
 
         }catch (SQLException e) {
-        System.out.println("Error while removing book: " + e.getMessage());
-        e.printStackTrace();
+
+        logError("Error while removing book for BookID: " + bookId, e);
     }
  }
 
     private static void executeUpdate(PreparedStatement pstm, String action) throws SQLException {
-        int affectedRows = pstm.executeUpdate();
-        if (affectedRows > 0) {
-            System.out.println("Operation of " + action + " was successful.");
-        } else {
-            System.out.println("No rows were affected during " + action + ". Please check your inputs.");
-        }
+
+      try {
+          int affectedRows = pstm.executeUpdate();
+          if (affectedRows > 0) {
+              System.out.println("Operation of " + action + " was successful.");
+          } else {
+              System.out.println("No rows were affected during " + action + ". Please check your inputs.");
+          }
+      }catch (SQLException e){
+          throw new SQLException("Error during" + action+ ":" + e.getMessage(), e);
+      }
     }
+
+    private static void logError(String message, Exception e) {
+
+        System.err.println(message);
+        e.printStackTrace();
+    }
+
+
+
 }
