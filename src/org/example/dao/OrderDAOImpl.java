@@ -20,76 +20,96 @@ public class OrderDAOImpl implements OrderDAO{
         }
     }
 
+
     @Override
     public void addOrder(Orders order, List<OrderDetails> orderDetailsList) throws SQLException {
-        PreparedStatement orderStmt = null;
-        PreparedStatement bookStmt = null;
-        PreparedStatement insertOrderDetailsStmt = null;
+        Connection conn = null;
         try {
-            connection.setAutoCommit(false); // Start transaction
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false); // Start transaction
 
             // Insert Order
             String orderSql = "INSERT INTO Orders (CustomerID, OrderDate, Status) VALUES (?, ?, ?)";
-            orderStmt = connection.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS);
-            orderStmt.setInt(1, order.getCustomerID());
-            orderStmt.setTimestamp(2, new Timestamp(order.getOrderDate().getTime()));
-            orderStmt.setString(3, order.getStatus());
-            DatabaseUtils.executeUpdate(orderStmt, "adding an order");
+            int orderId = -1;
+            try (PreparedStatement orderStmt = conn.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS)) {
+                orderStmt.setInt(1, order.getCustomerID());
+                orderStmt.setTimestamp(2, new Timestamp(System.currentTimeMillis())); // Use current time for order date
+                orderStmt.setString(3, order.getStatus());
+                orderStmt.executeUpdate();
 
-
-            // Retrieve generated order ID
-            ResultSet rs = orderStmt.getGeneratedKeys();
-            if (rs.next()) {
-                int orderId = rs.getInt(1);
-                order.setOrderID(orderId);
+                try (ResultSet rs = orderStmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        orderId = rs.getInt(1);
+                    } else {
+                        throw new SQLException("Failed to retrieve generated OrderID.");
+                    }
+                }
             }
 
-            // Update Book Stock and Insert Order Details
-            String bookSql = "UPDATE Books SET Stock = Stock - ? WHERE BookID = ? AND Stock >= ?";
-            bookStmt = connection.prepareStatement(bookSql);
-            String insertOrderDetailsSql = "INSERT INTO OrderDetails (OrderID, BookID, Quantity) VALUES (?, ?, ?)";
-            insertOrderDetailsStmt = connection.prepareStatement(insertOrderDetailsSql);
 
             for (OrderDetails od : orderDetailsList) {
-                // Update Book Stock
-                bookStmt.setInt(1, od.getQuantity());
-                bookStmt.setInt(2, od.getBookID());
-                bookStmt.setInt(3, od.getQuantity());
-                DatabaseUtils.executeUpdate(bookStmt, "updating book stock for BookID: " + od.getBookID());
+                updateBookStock(conn, od.getBookID(), od.getQuantity()); // Update stock
 
-
-                // Insert into OrderDetails
-                insertOrderDetailsStmt.setInt(1, order.getOrderID());
-                insertOrderDetailsStmt.setInt(2, od.getBookID());
-                insertOrderDetailsStmt.setInt(3, od.getQuantity());
-                DatabaseUtils.executeUpdate(insertOrderDetailsStmt, "adding order detail");
-
+                String detailsSql = "INSERT INTO OrderDetails (OrderID, BookID, Quantity) VALUES (?, ?, ?)";
+                try (PreparedStatement detailsStmt = conn.prepareStatement(detailsSql)) {
+                    detailsStmt.setInt(1, orderId);
+                    detailsStmt.setInt(2, od.getBookID());
+                    detailsStmt.setInt(3, od.getQuantity());
+                    detailsStmt.executeUpdate();
+                }
             }
 
-            connection.commit(); // Commit transaction
+            conn.commit(); // Commit transaction
         } catch (SQLException e) {
-            DatabaseUtils.logError("Error in transaction: ", e);
-            if (connection != null) {
+            if (conn != null) {
                 try {
-                    connection.rollback(); // Rollback transaction on error
+                    conn.rollback(); // Rollback transaction in case of error
                 } catch (SQLException ex) {
-                    DatabaseUtils.logError("Error while rolling back transaction: ", ex);
+                    ex.printStackTrace();
                 }
             }
+            throw e;
         } finally {
-            try {
-                if (orderStmt != null) orderStmt.close();
-                if (bookStmt != null) bookStmt.close();
-                if (insertOrderDetailsStmt != null) insertOrderDetailsStmt.close();
-                if (connection != null) {
-                    connection.setAutoCommit(true); // Reset auto-commit
-                    connection.close();
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true); // Reset auto-commit
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
                 }
-            } catch (SQLException e) {
-                DatabaseUtils.logError("Error closing resources: ", e);
             }
         }
     }
+
+    private void updateBookStock(Connection conn, int bookId, int quantity) throws SQLException {
+        // Check current stock
+        String checkStockSql = "SELECT Stock FROM Books WHERE BookID = ?";
+        try (PreparedStatement checkStockStmt = conn.prepareStatement(checkStockSql)) {
+            checkStockStmt.setInt(1, bookId);
+            try (ResultSet rs = checkStockStmt.executeQuery()) {
+                if (rs.next()) {
+                    int currentStock = rs.getInt("Stock");
+                    if (currentStock >= quantity) {
+                        // Update stock
+                        String updateStockSql = "UPDATE Books SET Stock = Stock - ? WHERE BookID = ?";
+                        try (PreparedStatement updateStockStmt = conn.prepareStatement(updateStockSql)) {
+                            updateStockStmt.setInt(1, quantity);
+                            updateStockStmt.setInt(2, bookId);
+                            int affectedRows = updateStockStmt.executeUpdate();
+                            if (affectedRows == 0) {
+                                throw new SQLException("Updating stock failed, no rows affected.");
+                            }
+                        }
+                    } else {
+                        throw new SQLException("Insufficient stock for BookID: " + bookId);
+                    }
+                } else {
+                    throw new SQLException("Book not found for BookID: " + bookId);
+                }
+            }
+        }
+    }
+
+
 
 
 

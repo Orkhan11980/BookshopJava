@@ -360,31 +360,38 @@ public class Main {
             System.out.println("5: Delete Order");
             System.out.println("6: Go Back to Main Menu");
             System.out.print("Enter choice: ");
-            int orderChoice = scanner.nextInt();
-            scanner.nextLine();
 
-            switch (orderChoice) {
-                case 1:
-                    addOrder(scanner, orderDao, orderDetailsDao);
-                    break;
-                case 2:
-                    viewAllOrders(orderDao);
-                    break;
-                case 3:
-                    viewOrderById(scanner, orderDao);
-                    break;
-                case 4:
-                    updateOrder(scanner, orderDao);
-                    break;
-                case 5:
-                    deleteOrder(scanner, orderDao, orderDetailsDao);
-                    break;
-                case 6:
-                    orderManagementMenu = false;
-                    break;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-                    break;
+
+
+            try {
+                int orderChoice = Integer.parseInt(scanner.nextLine());
+                switch (orderChoice) {
+                    case 1:
+                        addOrder(scanner, orderDao, orderDetailsDao);
+                        break;
+                    case 2:
+                        viewAllOrders(orderDao);
+                        break;
+                    case 3:
+                        viewOrderById(scanner, orderDao);
+                        break;
+                    case 4:
+                        updateOrder(scanner, orderDao);
+                        break;
+                    case 5:
+                        deleteOrder(scanner, orderDao, orderDetailsDao);
+                        break;
+                    case 6:
+                        orderManagementMenu = false;
+                        break;
+                    default:
+                        System.out.println("Invalid choice. Please try again.");
+                        break;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a valid number.");
+            } catch (Exception e) {
+                System.out.println("Error processing request: " + e.getMessage());
             }
         }
     }
@@ -394,46 +401,43 @@ public class Main {
             System.out.println("Enter Customer ID:");
             int customerId = Integer.parseInt(scanner.nextLine());
 
-            System.out.println("Enter Order Date (yyyy-MM-dd):");
-            String orderDateString = scanner.nextLine();
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            Timestamp orderDate = new Timestamp(dateFormat.parse(orderDateString).getTime());
-
-            System.out.println("Enter Order Status:");
-            String status = scanner.nextLine();
-
-            Orders newOrder = new Orders();
-            newOrder.setCustomerID(customerId);
-            newOrder.setOrderDate(orderDate);
-            newOrder.setStatus(status);
-
-
             List<OrderDetails> orderDetailsList = new ArrayList<>();
-            boolean addingMore = true;
-            while (addingMore) {
-                System.out.println("Enter Book ID for order detail:");
+            boolean addingMoreBooks = true;
+
+            while (addingMoreBooks) {
+                System.out.println("Enter Book ID:");
                 int bookId = Integer.parseInt(scanner.nextLine());
 
-                System.out.println("Enter quantity:");
+                System.out.println("Enter Quantity:");
                 int quantity = Integer.parseInt(scanner.nextLine());
 
-                OrderDetails orderDetail = new OrderDetails();
-                orderDetail.setBookID(bookId);
-                orderDetail.setQuantity(quantity);
-                orderDetailsList.add(orderDetail);
+                OrderDetails orderDetails = new OrderDetails();
+                orderDetails.setBookID(bookId);
+                orderDetails.setQuantity(quantity);
+                orderDetailsList.add(orderDetails);
 
-                System.out.println("Add more items to this order? (yes/no)");
-                addingMore = scanner.nextLine().trim().equalsIgnoreCase("yes");
+                System.out.println("Do you want to add more books to this order? (yes/no)");
+                addingMoreBooks = scanner.nextLine().trim().equalsIgnoreCase("yes");
             }
 
 
-            orderDao.addOrder(newOrder, orderDetailsList);
+            Orders newOrder = new Orders();
+            newOrder.setCustomerID(customerId);
+            newOrder.setStatus("Processing");
 
-            System.out.println("Order added successfully.");
-        } catch (Exception e) {
+
+            orderDao.addOrder(newOrder, orderDetailsList);
+            System.out.println("Order has been successfully added.");
+
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input. Please enter a valid number.");
+        } catch (SQLException e) {
             System.out.println("Error adding order: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
+
 
     private static void viewAllOrders(OrderDAO orderDao) {
         List<Orders> orders = orderDao.getAllOrders();
@@ -512,8 +516,6 @@ public class Main {
             }
 
             orderDetailsDao.deleteOrderDetails(orderId);
-
-
             orderDao.deleteOrder(orderId);
             System.out.println("Order and associated order details deleted successfully.");
         } catch (NumberFormatException e) {
@@ -750,10 +752,6 @@ public class Main {
             System.out.println("Error listing foreign keys: " + e.getMessage());
         }
     }
-
-
-
-
 
 
 
