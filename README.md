@@ -31,11 +31,30 @@ This project is a Java-based application developed to manage the operations of a
 4. **Configure Database Connection**:
 - Update the database connection details in `DatabaseConnectionManager.java` with your database credentials and URL.
 
+5. **Build the Project with Maven:**
+   `mvn clean install`
+
+6. **To run the application, use the following command:**
+   `mvn exec:java -Dexec.mainClass="org.example.Main"`
+
+
 ## Usage
-- The `Main` class serves as the entry point of the application. Uncomment the desired operations to perform CRUD operations, manage transactions, or display database metadata.
-- Example: To place an order, uncomment the following line in the `Main` class:
+- The `Main` class serves as the entry point of the application. After succesfully running the app  follow the on-screen prompts to interact with the system. The menu will guide you through various operations such as:
+
+Managing authors, books, customers, orders, and order details.
+Performing database metadata operations like listing tables, columns, primary keys, and foreign keys.
 ```java
-TransactionManagement.placeOrder(customerId, bookId, quantity);
+//Choose an option:
+//1: Manage Authors
+//2: Manage Books
+//3: Manage Customers
+//4: Manage Orders
+//5: Manage Order Details
+//6: Database Metadata Operations
+//7: Exit
+//Enter choice: 
+
+```
 
 
 
@@ -49,4 +68,3 @@ TransactionManagement.placeOrder(customerId, bookId, quantity);
 - **Technology Stack**: The project is built using Java with Maven for dependency management. It is developed and tested in IntelliJ IDEA.
 - **Database Compatibility**: It is compatible with various relational databases like MySQL and PostgreSQL. The database interactions are managed using standard JDBC APIs.
 - **Configuration**: Database connection details are managed in `DatabaseConnectionManager.java`, which needs to be configured with the correct database URL and credentials.
-
